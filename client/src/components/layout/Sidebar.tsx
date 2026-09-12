@@ -32,7 +32,8 @@ export type ActiveTab =
   | 'audit-log'
   | 'why-agentic'
   | 'architecture'
-  | 'tests';
+  | 'tests'
+  | 'performance';
 
 interface SidebarProps {
   activeTab: ActiveTab;
