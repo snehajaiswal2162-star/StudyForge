@@ -21,7 +21,7 @@ app.use('/api/tests', testsRouter);
 app.use('/api', apiRouter);
 
 // Serve static frontend assets in production
-const clientDistPath = path.resolve(__dirname, '../dist/client');
+const clientDistPath = path.resolve(__dirname, '../../dist/client');
 app.use(express.static(clientDistPath));
 
 // Fallback to index.html for client-side routing
