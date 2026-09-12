@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg-base: #f7fbf9;
+    --color-surface: #ffffff;
+    --color-border: #d7e5dd;
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #64748b;
+  }
+
+  .dark {
+    --color-bg-base: #07110d;
+    --color-surface: #0d1b15;
+    --color-border: #1b3528;
+    --color-text-primary: #f8fafc;
+    --color-text-secondary: #94a3b8;
+  }
+
+  body {
+    background-color: var(--color-bg-base);
+    background-image: radial-gradient(circle at 12% 0%, rgba(16, 185, 129, 0.08), transparent 28rem), radial-gradient(circle at 88% 12%, rgba(20, 184, 166, 0.05), transparent 24rem);
+    color: var(--color-text-primary);
+    min-height: 100vh;
+  }
+
+  .dark body {
+    background-image: radial-gradient(circle at 12% 0%, rgba(16, 185, 129, 0.1), transparent 30rem), radial-gradient(circle at 90% 16%, rgba(15, 118, 110, 0.08), transparent 28rem);
+  }
+}
+
+/* Custom scrollbar for clean dashboard feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Glass & Card styles */
+.sf-card {
+  @apply bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm transition-all duration-200;
+}
+
+.sf-card-hover {
+  @apply hover:border-emerald-400 dark:hover:border-emerald-500/50 hover:shadow-md hover:-translate-y-0.5;
+}
+
+.sf-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide;
+}
+
+.sf-page {
+  @apply animate-fade-in;
+}
+
+.sf-panel {
+  @apply rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 shadow-sm backdrop-blur-sm;
+}
+
+.sf-panel-hover {
+  @apply transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-950/5 dark:hover:border-emerald-800 dark:hover:shadow-emerald-950/20;
+}
+
+.sf-kicker {
+  @apply text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-600 dark:text-emerald-400;
+}
+
+.sf-page-title {
+  @apply text-2xl md:text-3xl font-black tracking-tight text-slate-950 dark:text-white;
+}
+
+.sf-page-subtitle {
+  @apply mt-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400;
+}
+
+.sf-button-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm shadow-emerald-700/20 transition-all hover:-translate-y-0.5 hover:bg-emerald-500 hover:shadow-md hover:shadow-emerald-700/20 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.sf-button-secondary {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/30;
+}
+
+.sf-input {
+  @apply rounded-xl border border-slate-200 bg-slate-50/80 text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-100 dark:focus:border-emerald-500;
+}
