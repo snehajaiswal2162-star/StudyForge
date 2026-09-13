@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import { usePlan } from '../context/PlanContext';
-import { AssessmentQuestion, QuizResult } from '../../shared/types';
+import { AssessmentQuestion, QuizResult } from '../../../shared/types';
 
 interface AssessmentViewProps {
   onContinue?: () => void;
