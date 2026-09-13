@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { agentOrchestrator } from '../agent/agentOrchestrator';
 import { CURATED_RESOURCES, generateSyntheticCalendar, getSyntheticPerformance } from '../simulation/curriculumGenerator';
 import { ASSESSMENT_QUESTIONS, gradeQuizSubmission } from '../simulation/assessmentData';
+import { generateSubjectCurriculum } from '../simulation/subjectCurriculum';
+import { geminiProvider } from '../agent/geminiProvider';
 import { planStore } from '../store/planStore';
 import { toolRegistry } from '../tools/toolRegistry';
 import { calculateKnowledgeGaps, runDeterministicVerification } from '../tools/learningTools';
@@ -59,24 +61,36 @@ apiRouter.post('/plan/create', async (req: Request, res: Response) => {
     sessionDurationMinutes: constraints?.sessionDurationMinutes || 60,
   };
 
-  const performance = getSyntheticPerformance(studentProfile.id);
+  const isDemoPlan = studentProfile.id === 'student-sneha' && studentProfile.email === 'sneha@studyforge.ai' && !onboardingProfile?.subject;
+  const generatedCurriculum = isDemoPlan
+    ? null
+    : generateSubjectCurriculum(onboardingProfile?.subject || studentProfile.targetGoal, onboardingProfile?.level || studentProfile.currentLevel);
+  const performance = generatedCurriculum?.performance || getSyntheticPerformance(studentProfile.id);
   const knowledgeGaps = calculateKnowledgeGaps(performance);
   const calendar = generateSyntheticCalendar('2026-09-14', 4);
 
   const newPlan: PlanState = {
     planId,
     student: studentProfile,
+    subject: onboardingProfile?.subject || (studentProfile.id === 'student-sneha' ? 'Data Structures & Algorithms' : onboardingProfile?.subject),
+    educationType: onboardingProfile?.learnerType,
+    goalType: onboardingProfile?.learningGoal,
+    currentLevel: onboardingProfile?.level || studentProfile.currentLevel,
+    targetDate: deadline,
+    dailyStudyMinutes: Math.round((planConstraints.preferredDailyHours || 1.5) * 60),
+    availableDays: planConstraints.availableDays,
+    prioritization: onboardingProfile?.priority,
     goal: studentProfile.targetGoal,
     deadline: deadline || '2026-10-15',
     constraints: planConstraints,
     performance,
     knowledgeGaps,
-    resources: CURATED_RESOURCES,
+    resources: generatedCurriculum?.resources || CURATED_RESOURCES,
     calendar,
     schedule: [],
     progress: {
-      overallMastery: Math.round(performance.reduce((acc, p) => acc + p.score, 0) / performance.length),
-      initialMastery: Math.round(performance.reduce((acc, p) => acc + p.score, 0) / performance.length),
+      overallMastery: performance.length ? Math.round(performance.reduce((acc, p) => acc + p.score, 0) / performance.length) : 0,
+      initialMastery: performance.length ? Math.round(performance.reduce((acc, p) => acc + p.score, 0) / performance.length) : 0,
       completedHours: 0,
       targetHours: 24,
       completedSessionsCount: 0,
@@ -349,11 +363,16 @@ apiRouter.post('/study-session/:id/missed', async (req: Request, res: Response) 
 });
 
 // GET /api/assessment/quiz
-apiRouter.get('/assessment/quiz', (req: Request, res: Response) => {
+apiRouter.get('/assessment/quiz', async (req: Request, res: Response) => {
   const topicId = req.query.topicId as string;
-  const questions = topicId
-    ? ASSESSMENT_QUESTIONS.filter(q => q.topicId === topicId)
+  const planId = req.query.planId as string;
+  const plan = planId ? planStore.getPlan(planId) : undefined;
+  const isDemoPlan = plan?.planId === 'plan-sneha-dsa';
+  const questionBank = plan && !isDemoPlan
+    ? await geminiProvider.generateAssessment(plan)
     : ASSESSMENT_QUESTIONS;
+  if (plan && !isDemoPlan) planStore.updatePlan(plan.planId, () => ({ assessmentQuestions: questionBank }));
+  const questions = topicId ? questionBank.filter(q => q.topicId === topicId) : questionBank;
 
   // Mask correctOptionIndex & explanation before student submission
   const safeQuestions = questions.map(q => ({
@@ -375,11 +394,14 @@ apiRouter.post('/assessment/submit', async (req: Request, res: Response) => {
   const plan = planStore.getPlan(planId);
   if (!plan) return res.status(404).json({ error: 'Plan not found.' });
 
+  const questionBank = plan.planId === 'plan-sneha-dsa'
+    ? ASSESSMENT_QUESTIONS
+    : plan.assessmentQuestions || generateSubjectCurriculum(plan.subject || plan.goal, plan.currentLevel || plan.student.currentLevel).questions;
   const currentTopicPerf = plan.performance.find(p => p.topicId === submission.topicId);
   const currentScore = currentTopicPerf ? currentTopicPerf.score : 50;
 
   // 1. Grade the quiz deterministically
-  const quizResult = gradeQuizSubmission(submission, currentScore);
+  const quizResult = gradeQuizSubmission(submission, currentScore, questionBank);
 
   // 2. Update Performance & Knowledge Gaps in PlanState
   const updatedPerformance = plan.performance.map(p => {
@@ -395,11 +417,22 @@ apiRouter.post('/assessment/submit', async (req: Request, res: Response) => {
     }
     return p;
   });
+  if (!currentTopicPerf) {
+    const assessmentTopic = questionBank.find(question => question.topicId === submission.topicId);
+    updatedPerformance.push({
+      topicId: submission.topicId,
+      topicName: assessmentTopic?.topicName || submission.topicId,
+      score: quizResult.newScore,
+      mastery: quizResult.newMastery,
+      isGap: quizResult.newScore < 75,
+      lastEvaluatedAt: new Date().toISOString(),
+    });
+  }
 
   const updatedGaps = calculateKnowledgeGaps(updatedPerformance);
-  const newOverallMastery = Math.round(
-    updatedPerformance.reduce((acc, p) => acc + p.score, 0) / updatedPerformance.length
-  );
+  const newOverallMastery = updatedPerformance.length
+    ? Math.round(updatedPerformance.reduce((acc, p) => acc + p.score, 0) / updatedPerformance.length)
+    : 0;
 
   planStore.updatePlan(planId, p => ({
     performance: updatedPerformance,

@@ -80,7 +80,8 @@ export const PlanProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user?.planId) {
       fetchPlan(user.planId);
     } else {
-      fetchPlan('plan-sneha-dsa');
+      setPlan(null);
+      setIsLoading(false);
     }
   }, [user?.planId, fetchPlan]);
 

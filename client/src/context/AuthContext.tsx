@@ -6,7 +6,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  planId: string;
+  planId?: string;
 }
 
 interface AuthContextType {

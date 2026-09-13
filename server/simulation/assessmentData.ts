@@ -541,8 +541,8 @@ export const ASSESSMENT_QUESTIONS: AssessmentQuestion[] = [
   },
 ];
 
-export function gradeQuizSubmission(submission: QuizSubmission, currentScore: number): QuizResult {
-  const topicQuestions = ASSESSMENT_QUESTIONS.filter(q => q.topicId === submission.topicId);
+export function gradeQuizSubmission(submission: QuizSubmission, currentScore: number, questionBank = ASSESSMENT_QUESTIONS): QuizResult {
+  const topicQuestions = questionBank.filter(q => q.topicId === submission.topicId);
   const total = topicQuestions.length;
 
   let correctCount = 0;

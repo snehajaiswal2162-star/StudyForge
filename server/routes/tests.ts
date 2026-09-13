@@ -4,6 +4,8 @@ import { CURATED_RESOURCES, generateSyntheticCalendar, getSyntheticPerformance }
 import { calculateKnowledgeGaps, runDeterministicVerification } from '../tools/learningTools';
 import { toolRegistry } from '../tools/toolRegistry';
 import { PlanState } from '../../shared/types';
+import { generateSubjectCurriculum } from '../simulation/subjectCurriculum';
+import { mockProvider } from '../agent/mockProvider';
 
 export const testsRouter = Router();
 
@@ -293,6 +295,55 @@ export async function executeAllTests(): Promise<{ passedCount: number; totalCou
       details: `Agent loop executed ${result.stepsExecuted} steps and stopped safely within safety caps (Max 20 steps, 25 tools).`,
       diagnostic: { steps: result.stepsExecuted, toolCalls: result.toolCallsExecuted, finalStatus: result.finalStatus },
     };
+  });
+
+  await runTest(14, 'Subject-Aware Banking Assessment Fallback', 'General Curriculum', async () => {
+    const curriculum = generateSubjectCurriculum('Banking', 'Beginner');
+    const unrelated = curriculum.questions.some(q => /Dynamic Programming|Graphs|Recursion|Trees|Arrays|Linked Lists|Stacks & Queues/i.test(`${q.topicName} ${q.question}`));
+    return { passed: curriculum.questions.length === 8 && !unrelated && curriculum.questions.every(q => q.question.includes('banking')), details: `Generated ${curriculum.questions.length} Banking questions without seeded DSA topics.` };
+  });
+
+  await runTest(15, 'Subject-Aware Python and Physics Resources', 'General Curriculum', async () => {
+    const python = generateSubjectCurriculum('Python', 'Beginner');
+    const physics = generateSubjectCurriculum('Physics', 'Intermediate');
+    const passed = python.resources.every(resource => resource.topicName?.includes('Python')) && physics.resources.every(resource => resource.topicName?.includes('Physics'));
+    return { passed, details: `Generated ${python.resources.length} Python and ${physics.resources.length} Physics resources tied to their subject topics.` };
+  });
+
+  await runTest(16, 'Knowledge Gaps Derived From Subject Performance', 'General Curriculum', async () => {
+    const curriculum = generateSubjectCurriculum('Finance', 'Beginner');
+    const assessedPerformance = curriculum.topics.map((topic, index) => ({
+      topicId: topic.id,
+      topicName: topic.name,
+      score: index === 0 ? 42 : 78,
+      mastery: index === 0 ? 'Critical' as const : 'Low' as const,
+      isGap: true,
+      lastEvaluatedAt: new Date().toISOString(),
+    }));
+    const gaps = calculateKnowledgeGaps(assessedPerformance);
+    const passed = gaps.some(gap => gap.topicName === 'Finance Fundamentals' && gap.score === 42);
+    return { passed, details: `Derived ${gaps.length} Finance gaps from generated topic performance.` };
+  });
+
+  await runTest(17, 'Generic MockProvider Avoids DSA Fallback', 'General Agent', async () => {
+    const curriculum = generateSubjectCurriculum('Physics', 'Beginner');
+    const plan = {
+      planId: 'generic-physics-test',
+      subject: 'Physics',
+      goal: 'Learn Physics',
+      deadline: '2026-12-01',
+      student: { id: 'physics-student', name: 'Physics Student', email: 'physics@example.com', targetGoal: 'Learn Physics', currentLevel: 'Beginner' },
+      constraints: { availableHoursPerWeek: 5, preferredDailyHours: 1, availableDays: ['Monday'], maxSessionsPerDay: 1, sessionDurationMinutes: 60 },
+      performance: curriculum.performance,
+      knowledgeGaps: calculateKnowledgeGaps(curriculum.performance),
+      resources: curriculum.resources,
+      calendar: generateSyntheticCalendar('2026-09-14', 1),
+      schedule: [], progress: { overallMastery: 50, initialMastery: 50, completedHours: 0, targetHours: 5, completedSessionsCount: 0, totalSessionsCount: 0, missedSessionsCount: 0, rescheduledSessionsCount: 0, streakDays: 0 },
+      decisions: [], toolCalls: [], verificationEvents: [], adaptationEvents: [], auditLog: [], status: 'DRAFT', riskLevel: 'LOW', activeProvider: 'MockProvider', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    } as PlanState;
+    const decision = await mockProvider.generateDecision({ planState: plan, availableTools: [], stepCount: 1, history: [] });
+    const passed = !JSON.stringify(decision).match(/Dynamic Programming|Graphs|Recursion|Trees|Arrays|Linked Lists|Stacks & Queues/i) && decision.parameters?.topicId?.includes('physics');
+    return { passed, details: `MockProvider selected subject topic '${decision.parameters?.topicId || 'none'}' without DSA fallback.` };
   });
 
   const passedCount = results.filter(r => r.passed).length;

@@ -40,7 +40,7 @@ authRouter.post('/login', (req: Request, res: Response) => {
       id: user.id,
       name: user.name,
       email: user.email,
-      planId: user.planId || 'plan-sneha-dsa',
+      ...(user.planId ? { planId: user.planId } : {}),
     },
     token: createSessionToken(user.id),
   });
@@ -67,7 +67,7 @@ authRouter.post('/register', (req: Request, res: Response) => {
       id: result.user.id,
       name: result.user.name,
       email: result.user.email,
-      planId: result.user.planId || 'plan-sneha-dsa',
+      ...(result.user.planId ? { planId: result.user.planId } : {}),
     },
     token: createSessionToken(result.user.id),
   });
@@ -92,7 +92,7 @@ authRouter.get('/me', (req: Request, res: Response) => {
       id: user.id,
       name: user.name,
       email: user.email,
-      planId: user.planId || 'plan-sneha-dsa',
+      ...(user.planId ? { planId: user.planId } : {}),
     },
   });
 });

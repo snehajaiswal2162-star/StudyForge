@@ -86,7 +86,7 @@ export class MockProvider implements LLMProvider {
 
     // SCENARIO 4: Initial Plan Generation Sequence
     // Step A: Inspect performance & derive gaps
-    if (!planState.knowledgeGaps || planState.knowledgeGaps.length === 0) {
+    if (planState.planId === 'plan-sneha-dsa' && (!planState.knowledgeGaps || planState.knowledgeGaps.length === 0)) {
       return {
         type: 'CALL_TOOL',
         tool: 'getPerformance',
@@ -104,6 +104,60 @@ export class MockProvider implements LLMProvider {
         parameters: { studentId: planState.student.id },
         reason: 'Must determine student weekly study windows and blocked periods before proposing sessions.',
         objective: 'map_availability',
+      };
+    }
+
+    // Generic plans use only the subject-aware topics and resources stored on their PlanState.
+    if (planState.planId !== 'plan-sneha-dsa') {
+      const priorityGap = (planState.knowledgeGaps || [])[0];
+      if (priorityGap && !(planState.resources || []).some(r => r.topicId === priorityGap.topicId)) {
+        return {
+          type: 'CALL_TOOL',
+          tool: 'getResources',
+          parameters: { topicId: priorityGap.topicId },
+          reason: `Retrieving learning resources for the student's highest-priority ${planState.subject || 'subject'} gap: ${priorityGap.topicName}.`,
+          objective: 'fetch_subject_materials',
+        };
+      }
+
+      const unscheduledGap = (planState.knowledgeGaps || []).find(g => !planState.schedule.some(s => s.topicId === g.topicId && s.status !== 'MISSED' && s.status !== 'CANCELLED'));
+      const unscheduledResource = !unscheduledGap
+        ? (planState.resources || []).find(resource => !planState.schedule.some(s => s.topicId === resource.topicId && s.status !== 'MISSED' && s.status !== 'CANCELLED'))
+        : undefined;
+      const availableSlot = (planState.calendar || []).find(slot => slot.isAvailable && (!planState.availableDays || planState.availableDays.includes(slot.dayOfWeek)) && !planState.schedule.some(s => s.date === slot.date && s.status !== 'MISSED' && s.status !== 'CANCELLED'));
+      const topicId = unscheduledGap?.topicId || unscheduledResource?.topicId;
+      const resource = topicId && (planState.resources || []).find(r => r.topicId === topicId);
+      if (topicId && availableSlot && resource && planState.schedule.length < 5) {
+        return {
+          type: 'SCHEDULE_SESSION',
+          tool: 'createStudySession',
+          parameters: {
+            topicId,
+            resourceId: resource.id,
+            date: availableSlot.date,
+            startTime: availableSlot.startTime,
+            duration: planState.constraints.sessionDurationMinutes,
+          },
+          reason: `Scheduling ${unscheduledGap?.topicName || resource.topicName || topicId} for the student's ${planState.subject || 'subject'} plan using available diagnostic and curriculum evidence.`,
+          objective: 'schedule_subject_priority',
+        };
+      }
+
+      const hasUnverifiedSessions = planState.schedule.length > 0 && (!planState.verificationEvents?.length || planState.status === 'DRAFT');
+      if (hasUnverifiedSessions) {
+        return {
+          type: 'VERIFY_PLAN',
+          tool: 'verifyPlan',
+          parameters: { planId: planState.planId },
+          reason: 'Subject-specific schedule changed. Re-verifying feasibility and constraints.',
+          objective: 'verify_subject_schedule',
+        };
+      }
+
+      return {
+        type: 'COMPLETE',
+        reason: `The ${planState.subject || 'subject'} plan is in active monitoring state with ${planState.schedule.length} sessions scheduled.`,
+        objective: 'monitor_subject_plan',
       };
     }
 

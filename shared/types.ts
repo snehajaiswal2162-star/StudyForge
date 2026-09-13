@@ -205,6 +205,15 @@ export interface OverallProgress {
 export interface PlanState {
   planId: string;
   student: StudentProfile;
+  subject?: string;
+  educationType?: string;
+  goalType?: string;
+  currentLevel?: 'Beginner' | 'Basic' | 'Intermediate' | 'Advanced';
+  targetDate?: string;
+  dailyStudyMinutes?: number;
+  availableDays?: string[];
+  prioritization?: string;
+  assessmentQuestions?: AssessmentQuestion[];
   goal: string;
   deadline: string; // e.g. '2026-10-15'
   constraints: PlanConstraints;

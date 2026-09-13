@@ -81,7 +81,8 @@ export class ToolRegistry {
         const { topicId } = params;
         if (!topicId) return { success: false, error: 'Missing required parameter: topicId' };
 
-        const matchedResources = CURATED_RESOURCES.filter(r => r.topicId === topicId);
+        const plan = planStore.getPlan(planId);
+        const matchedResources = (plan?.resources || []).filter(r => r.topicId === topicId);
         if (matchedResources.length === 0) {
           return { success: false, error: `No curated resources found for topic: '${topicId}'` };
         }
@@ -221,7 +222,7 @@ export class ToolRegistry {
         }
 
         // Find resource details
-        const resource = CURATED_RESOURCES.find(r => r.id === resourceId) || plan.resources.find(r => r.id === resourceId);
+        const resource = plan.resources.find(r => r.id === resourceId) || CURATED_RESOURCES.find(r => r.id === resourceId);
         const resourceTitle = resource?.title || 'Comprehensive Topic Practice';
         const topicName = resource?.topicName || plan.performance.find(p => p.topicId === topicId)?.topicName || topicId;
 

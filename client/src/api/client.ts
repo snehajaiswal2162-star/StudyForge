@@ -123,7 +123,7 @@ export const api = {
   getPerformance: (studentId: string) => request<{ performance: TopicPerformance[]; gaps: any[] }>(`/performance/${studentId}`),
 
   // Assessments
-  getQuiz: (topicId?: string) => request<AssessmentQuestion[]>(`/assessment/quiz${topicId ? `?topicId=${topicId}` : ''}`),
+  getQuiz: (planId?: string) => request<AssessmentQuestion[]>(`/assessment/quiz${planId ? `?planId=${encodeURIComponent(planId)}` : ''}`),
   submitQuiz: (planId: string, submission: QuizSubmission) =>
     request<{ quizResult: QuizResult; plan: PlanState }>('/assessment/submit', {
       method: 'POST',

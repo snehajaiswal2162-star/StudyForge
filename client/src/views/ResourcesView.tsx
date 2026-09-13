@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { BookOpen, ExternalLink, Filter, Clock, CheckCircle2 } from 'lucide-react';
 import { usePlan } from '../context/PlanContext';
-import { CURATED_RESOURCES } from '@shared/curriculum';
 
 export const ResourcesView: React.FC = () => {
   const { plan } = usePlan();
@@ -9,9 +8,10 @@ export const ResourcesView: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
 
+  const resources = plan?.resources || [];
   const scheduledResourceIds = new Set((plan?.schedule || []).map(s => s.resourceId));
 
-  const filteredResources = CURATED_RESOURCES.filter(r => {
+  const filteredResources = resources.filter(r => {
     if (selectedTopic !== 'all' && r.topicId !== selectedTopic) return false;
     if (selectedType !== 'all' && r.type !== selectedType) return false;
     if (selectedDifficulty !== 'all' && r.difficulty !== selectedDifficulty) return false;
@@ -20,14 +20,7 @@ export const ResourcesView: React.FC = () => {
 
   const topics = [
     { id: 'all', name: 'All Topics' },
-    { id: 'dynamic-programming', name: 'Dynamic Programming' },
-    { id: 'graphs', name: 'Graphs' },
-    { id: 'recursion', name: 'Recursion' },
-    { id: 'trees', name: 'Trees' },
-    { id: 'linked-lists', name: 'Linked Lists' },
-    { id: 'stacks-queues', name: 'Stacks & Queues' },
-    { id: 'arrays', name: 'Arrays' },
-    { id: 'python', name: 'Python' },
+    ...Array.from(new Map(resources.map(resource => [resource.topicId, resource.topicName || resource.topicId]))).map(([id, name]) => ({ id, name })),
   ];
 
   return (

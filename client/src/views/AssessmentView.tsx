@@ -25,17 +25,6 @@ interface AssessmentSummary {
   agentEvaluated: boolean;
 }
 
-const ASSESSMENT_SELECTIONS = [
-  'arrays',
-  'linked-lists',
-  'stacks-queues',
-  'trees',
-  'graphs',
-  'recursion',
-  'dynamic-programming',
-  'dynamic-programming',
-];
-
 export const AssessmentView: React.FC<AssessmentViewProps> = ({ onContinue }) => {
   const { plan, submitQuiz, isAgentRunning } = usePlan();
   const [questions, setQuestions] = useState<AssessmentQuestion[]>([]);
@@ -50,18 +39,12 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({ onContinue }) =>
     let isMounted = true;
 
     const fetchQuestions = async () => {
+      if (!plan) return;
       setIsLoadingQuestions(true);
       setError(null);
       try {
-        const bank = await api.getQuiz();
-        const usedQuestionIds = new Set<string>();
-        const selected = ASSESSMENT_SELECTIONS
-          .map(topicId => {
-            const question = bank.find(item => item.topicId === topicId && !usedQuestionIds.has(item.id));
-            if (question) usedQuestionIds.add(question.id);
-            return question;
-          })
-          .filter((question): question is AssessmentQuestion => Boolean(question));
+        const bank = await api.getQuiz(plan?.planId);
+        const selected = bank.slice(0, 8);
 
         if (isMounted) setQuestions(selected.slice(0, 8));
       } catch (err: any) {
@@ -75,7 +58,7 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({ onContinue }) =>
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [plan?.planId]);
 
   const currentQuestion = questions[currentIndex];
   const selectedAnswer = currentQuestion ? answers[currentQuestion.id] : undefined;
@@ -230,7 +213,7 @@ export const AssessmentView: React.FC<AssessmentViewProps> = ({ onContinue }) =>
     <div className="sf-page mx-auto max-w-3xl space-y-6">
       <div>
         <p className="sf-kicker">Diagnostic check-in</p>
-        <h1 className="sf-page-title">DSA Skills Assessment</h1>
+        <h1 className="sf-page-title">{plan?.subject || 'Learning'} Skills Assessment</h1>
         <p className="sf-page-subtitle">One question at a time. Your results help the agent prioritize the next best study session.</p>
       </div>
 
