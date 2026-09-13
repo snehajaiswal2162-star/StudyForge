@@ -1,9 +1,93 @@
 import { LLMDecision, LLMProvider } from './types';
-import { PlanState } from '../../shared/types';
+import {
+  AssessmentQuestion,
+  LessonAssessment,
+  PlanState,
+  StudySession,
+} from '../../shared/types';
 import { CURATED_RESOURCES } from '../simulation/curriculumGenerator';
 
 export class MockProvider implements LLMProvider {
   public readonly name = 'MockProvider';
+
+  public async generateLessonAssessment(
+  plan: PlanState,
+  session: StudySession,
+  attempt: number = 1,
+  previousQuestions: AssessmentQuestion[] = []
+): Promise<LessonAssessment> {
+  const subject = plan.subject || plan.goal;
+  const topic = session.topicName;
+
+  const questionSets = [
+    [
+      `What is the main purpose of ${topic} in ${subject}?`,
+      `Which statement best explains the core idea of ${topic}?`,
+      `Which situation demonstrates correct understanding of ${topic}?`,
+      `Why is ${topic} relevant to the learning goal?`,
+      `Which approach is most appropriate when applying ${topic}?`,
+      `What is a useful way to practice ${topic}?`,
+      `Which result would indicate good understanding of ${topic}?`,
+      `How can knowledge of ${topic} be applied to a new problem?`,
+    ],
+    [
+      `A learner has studied ${topic}. Which action best tests their understanding?`,
+      `Which example would best demonstrate practical knowledge of ${topic}?`,
+      `What should a learner focus on when reviewing ${topic}?`,
+      `Which statement about ${topic} is most accurate?`,
+      `How would you apply ${topic} in a practical situation?`,
+      `Which mistake should a learner avoid when working with ${topic}?`,
+      `What is the best next step after learning ${topic}?`,
+      `Which activity would strengthen ${topic} mastery most effectively?`,
+    ],
+    [
+      `Which scenario requires knowledge of ${topic}?`,
+      `What would be the strongest evidence that ${topic} has been mastered?`,
+      `Which strategy best helps solve a problem involving ${topic}?`,
+      `What is the key concept a learner should remember about ${topic}?`,
+      `Which approach would improve performance on ${topic}?`,
+      `How can a learner verify their understanding of ${topic}?`,
+      `Which situation shows successful application of ${topic}?`,
+      `Why should ${topic} be connected with practical examples?`,
+    ],
+  ];
+
+  const setIndex = (Math.max(1, attempt) - 1) % questionSets.length;
+  const selectedQuestions = questionSets[setIndex];
+
+  const questions: AssessmentQuestion[] = selectedQuestions.map(
+    (question, index) => ({
+      id: `lesson-${session.id}-attempt-${attempt}-q-${index + 1}`,
+      topicId: session.topicId,
+      topicName: topic,
+      question,
+      options: [
+        `Correct application of ${topic}`,
+        `An unrelated approach`,
+        `Ignoring the core concept`,
+        `Avoiding practical application`,
+      ],
+      correctOptionIndex: 0,
+      explanation: `This question checks understanding of ${topic} within ${subject}.`,
+      difficulty:
+        index % 3 === 0
+          ? 'Easy'
+          : index % 3 === 1
+            ? 'Medium'
+            : 'Hard',
+    })
+  );
+
+  return {
+    id: `lesson-assessment-${session.id}-${Date.now()}`,
+    sessionId: session.id,
+    topicId: session.topicId,
+    topicName: topic,
+    questions,
+    attempt,
+    generatedAt: new Date().toISOString(),
+  };
+}
 
   public async generateDecision(context: {
     planState: PlanState;

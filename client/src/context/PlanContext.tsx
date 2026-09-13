@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { api } from '../api/client';
-import { PlanState, QuizResult, QuizSubmission } from '../../shared/types';
+import { PlanState, QuizResult, QuizSubmission } from '../../../shared/types';
 import { useAuth } from './AuthContext';
 
 interface PlanContextType {

@@ -214,6 +214,7 @@ export interface PlanState {
   availableDays?: string[];
   prioritization?: string;
   assessmentQuestions?: AssessmentQuestion[];
+  activeLessonAssessment?: LessonAssessment;
   goal: string;
   deadline: string; // e.g. '2026-10-15'
   constraints: PlanConstraints;
@@ -249,9 +250,21 @@ export interface AssessmentQuestion {
   difficulty: 'Easy' | 'Medium' | 'Hard';
 }
 
+export interface LessonAssessment {
+  id: string;
+  sessionId: string;
+  topicId: string;
+  topicName: string;
+  questions: AssessmentQuestion[];
+  attempt: number;
+  generatedAt: string;
+}
+
 export interface QuizSubmission {
   studentId: string;
   topicId: string;
+  sessionId?: string;
+  assessmentId?: string;
   answers: {
     questionId: string;
     selectedOptionIndex: number;
