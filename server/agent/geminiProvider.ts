@@ -429,11 +429,18 @@ Easy, Medium, Hard.`;
      * Rotate the deterministic set on every attempt.
      * This prevents the exact same ordering from appearing.
      */
-    const normalizedAttempt = Math.max(1, attempt);
+    const previousVariants = previousQuestions
+      .map(question => question.question.match(/assessment variant (\d+)/i)?.[1])
+      .filter(Boolean)
+      .map(Number);
+    const normalizedAttempt = Math.max(
+      1,
+      attempt,
+      previousVariants.length ? Math.max(...previousVariants) + 1 : 1
+    );
     const rotation =
       (normalizedAttempt - 1) % questionTemplates.length;
-    const variant =
-      Math.floor((normalizedAttempt - 1) / questionTemplates.length) + 1;
+    const variant = normalizedAttempt;
 
     const rotated = [
       ...questionTemplates.slice(rotation),

@@ -52,9 +52,17 @@ export class MockProvider implements LLMProvider {
     ],
   ];
 
-  const normalizedAttempt = Math.max(1, attempt);
+  const previousVariants = previousQuestions
+    .map(question => question.question.match(/assessment variant (\d+)/i)?.[1])
+    .filter(Boolean)
+    .map(Number);
+  const normalizedAttempt = Math.max(
+    1,
+    attempt,
+    previousVariants.length ? Math.max(...previousVariants) + 1 : 1
+  );
   const setIndex = (normalizedAttempt - 1) % questionSets.length;
-  const variant = Math.floor((normalizedAttempt - 1) / questionSets.length) + 1;
+  const variant = normalizedAttempt;
   const selectedQuestions = questionSets[setIndex];
 
   const questions: AssessmentQuestion[] = selectedQuestions.map(
