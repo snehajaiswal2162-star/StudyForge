@@ -429,8 +429,11 @@ Easy, Medium, Hard.`;
      * Rotate the deterministic set on every attempt.
      * This prevents the exact same ordering from appearing.
      */
+    const normalizedAttempt = Math.max(1, attempt);
     const rotation =
-      (Math.max(1, attempt) - 1) % questionTemplates.length;
+      (normalizedAttempt - 1) % questionTemplates.length;
+    const variant =
+      Math.floor((normalizedAttempt - 1) / questionTemplates.length) + 1;
 
     const rotated = [
       ...questionTemplates.slice(rotation),
@@ -445,7 +448,7 @@ Easy, Medium, Hard.`;
       id: `lesson-${session.id}-attempt-${attempt}-q-${index + 1}`,
       topicId: session.topicId,
       topicName: topic,
-      question: template.question,
+      question: `${template.question} Consider a new example for assessment variant ${variant}.`,
       options: template.options,
       correctOptionIndex: 0,
       explanation:

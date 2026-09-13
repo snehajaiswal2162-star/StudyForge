@@ -3,9 +3,10 @@ import { agentOrchestrator } from '../agent/agentOrchestrator';
 import { CURATED_RESOURCES, generateSyntheticCalendar, getSyntheticPerformance } from '../simulation/curriculumGenerator';
 import { calculateKnowledgeGaps, runDeterministicVerification } from '../tools/learningTools';
 import { toolRegistry } from '../tools/toolRegistry';
-import { PlanState } from '../../shared/types';
+import { PlanState, StudySession } from '../../shared/types';
 import { generateSubjectCurriculum } from '../simulation/subjectCurriculum';
 import { mockProvider } from '../agent/mockProvider';
+import { planStore } from '../store/planStore';
 
 export const testsRouter = Router();
 
@@ -344,6 +345,31 @@ export async function executeAllTests(): Promise<{ passedCount: number; totalCou
     const decision = await mockProvider.generateDecision({ planState: plan, availableTools: [], stepCount: 1, history: [] });
     const passed = !JSON.stringify(decision).match(/Dynamic Programming|Graphs|Recursion|Trees|Arrays|Linked Lists|Stacks & Queues/i) && decision.parameters?.topicId?.includes('physics');
     return { passed, details: `MockProvider selected subject topic '${decision.parameters?.topicId || 'none'}' without DSA fallback.` };
+  });
+
+  await runTest(18, 'Lesson Assessment Freshness & Topic Binding', 'Assessment', async () => {
+    const session = (topicId: string, topicName: string): StudySession => ({
+      id: `lesson-${topicId}`,
+      topicId,
+      topicName,
+      resourceId: `resource-${topicId}`,
+      resourceTitle: `${topicName} lesson`,
+      date: '2026-09-20',
+      startTime: '10:00',
+      endTime: '11:00',
+      durationMinutes: 60,
+      priority: 'HIGH',
+      status: 'COMPLETED',
+    });
+    const arrays = session('arrays', 'Arrays');
+    const linkedLists = session('linked-lists', 'Linked Lists');
+    const first = await mockProvider.generateLessonAssessment(planStore.getPlan('plan-sneha-dsa')!, arrays, 1);
+    const regenerated = await mockProvider.generateLessonAssessment(planStore.getPlan('plan-sneha-dsa')!, arrays, 4, first.questions);
+    const otherTopic = await mockProvider.generateLessonAssessment(planStore.getPlan('plan-sneha-dsa')!, linkedLists, 1);
+    const firstText = new Set(first.questions.map(question => question.question));
+    const regeneratedText = new Set(regenerated.questions.map(question => question.question));
+    const passed = first.questions.length === 8 && regenerated.questions.length === 8 && otherTopic.questions.every(question => question.topicId === linkedLists.topicId) && [...firstText].every(question => !regeneratedText.has(question));
+    return { passed, details: `Generated ${first.questions.length} Arrays questions, a fresh attempt, and ${otherTopic.questions.length} Linked Lists questions.` };
   });
 
   const passedCount = results.filter(r => r.passed).length;

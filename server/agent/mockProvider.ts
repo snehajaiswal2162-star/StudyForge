@@ -52,7 +52,9 @@ export class MockProvider implements LLMProvider {
     ],
   ];
 
-  const setIndex = (Math.max(1, attempt) - 1) % questionSets.length;
+  const normalizedAttempt = Math.max(1, attempt);
+  const setIndex = (normalizedAttempt - 1) % questionSets.length;
+  const variant = Math.floor((normalizedAttempt - 1) / questionSets.length) + 1;
   const selectedQuestions = questionSets[setIndex];
 
   const questions: AssessmentQuestion[] = selectedQuestions.map(
@@ -60,7 +62,7 @@ export class MockProvider implements LLMProvider {
       id: `lesson-${session.id}-attempt-${attempt}-q-${index + 1}`,
       topicId: session.topicId,
       topicName: topic,
-      question,
+      question: `${question} Assessment variant ${variant}.`,
       options: [
         `Correct application of ${topic}`,
         `An unrelated approach`,
